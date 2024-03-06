@@ -17,8 +17,9 @@ def load_csv_file(filepath: str) -> pd.DataFrame:
         parse_dates=["# Timestamp"],
         index_col="# Timestamp",
         dayfirst=True,
-        usecols=["# Timestamp", "MMSI", "Latitude", "Longitude"],
+        usecols=["# Timestamp", "MMSI", "Ship type", "Latitude", "Longitude"],
     ).rename(columns={"Latitude": "lat", "Longitude": "lon"})
+    print(f"raw df uses {df.memory_usage().sum() / 1_000_000} Mb")
 
     assert df['lat'].isnull().sum() == 0, "Latitude column has missing values"
     assert df['lon'].isnull().sum() == 0, "Longitude column has missing values"
@@ -33,12 +34,16 @@ def change_data_frequency(
     return ais_df.resample(rule=data_freq.value).first() # resample based on index (timestamp)
 
 
-def preprocessing(ais_df: pd.DataFrame) -> pd.DataFrame:
+def to_geodf(ais_df: pd.DataFrame) -> pd.DataFrame:
     # Convert to GeoPandas DataFrame
     geo_ais_df = gpd.GeoDataFrame(
         ais_df, geometry=gpd.points_from_xy(ais_df.lon, ais_df.lat)
     )
     return geo_ais_df
+
+def change_crs(geo_df: gpd.GeoDataFrame, crs: str) -> gpd.GeoDataFrame:
+    """Changes the coordinate reference system (CRS) of the GeoDataFrame."""
+    return geo_df.to_crs(crs)
 
 
 def reduce_data(csv_file_path: str, out_folder_path: str):
@@ -63,25 +68,13 @@ def reduce_data(csv_file_path: str, out_folder_path: str):
     print(f"Number of files created: {c}")
 
 def remove_faulty_ais_readings(ais_df: pd.DataFrame) -> pd.DataFrame:
-    return ais_df.loc[(ais_df['lon'] != 0)]
+    return ais_df.loc[(ais_df['lon'] != 0.0)]
 
 
 if __name__ == "__main__":
-    # out_folder_path = "test_out/test_chunking"
-
-    # Remove files:
-    # folder_files = os.listdir(out_folder_path)
-    # for f in folder_files:
-    #     os.remove(os.path.join(out_folder_path, f))
-
-    ### Test the reduce_data function
-    # reduce_data("data_files/aisdk-2024-02-18.csv", out_folder_path)
-    # d = pd.read_parquet("test_out/test_chunking/aisdk-2024-02-18_219011048.parquet")
-
-
-    ### Other testing:
-    today = load_csv_file("data_files/test_aug_1_sailboat.csv")
+    today = load_csv_file("data_files/aisdk-2023-08-01.csv")
     today.memory_usage() # memory usage of the dataframe in bytes
+    print(f"df uses {aug1.memory_usage().sum() / 1_000_000} Mb")
     yesterday = load_csv_file("data_files/aisdk-2024-02-17.csv")
     grouped = today.groupby("MMSI")
     #groups = list(grouped.groups.keys())
@@ -95,7 +88,7 @@ if __name__ == "__main__":
     # Concatenate the two dataframes
     concatenated = pd.concat([yesterday_vessel1, today_vessel1])
     changed_freq = change_data_frequency(concatenated, TimeFrequency.min_10)
-    geo = preprocessing(changed_freq)
+    geo = to_geodf(changed_freq)
     geo.plot()
 
     # Creating a moving pandas trajectory and plotting it

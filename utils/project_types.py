@@ -9,6 +9,9 @@ class TimeFrequency(Enum):
     min_30 = "30min"
     hour_1 = "1H"
 
+class MapProjection(Enum):
+    WGS84 = "EPSG:4326"
+
 class ShipType(Enum):
     """A enum class to represent the different ship types in the AIS dataset"""
     sailboat = 'Sailing'

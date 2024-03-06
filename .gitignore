@@ -4,10 +4,10 @@ __pycache__/
 *$py.class
 
 *.csv
+*.zip
 *.parquet
 test_out/
 data_files/
-max/
 .python-version
 
 # C extensions
