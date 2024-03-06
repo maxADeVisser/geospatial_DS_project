@@ -5,11 +5,12 @@ import geopandas as gpd
 import movingpandas as mpd
 import pandas as pd
 
-from utils.project_types import TimeFrequency
+from utils.project_types import ShipType, TimeFrequency
 
 
 def load_csv_file(filepath: str) -> pd.DataFrame:
-    """Loads a csv file, filters unused columns and returns a dataframe."""
+    """Loads a a full (no chunking) ais*.csv file from https://web.ais.dk/aisdata/,
+    filters unused columns and returns a dataframe."""
     assert filepath.endswith(".csv"), "File must be a csv file."
     df =  pd.read_csv(
         filepath,
@@ -61,24 +62,26 @@ def reduce_data(csv_file_path: str, out_folder_path: str):
         c += 1
     print(f"Number of files created: {c}")
 
+def remove_faulty_ais_readings(ais_df: pd.DataFrame) -> pd.DataFrame:
+    return ais_df.loc[(ais_df['lon'] != 0)]
+
 
 if __name__ == "__main__":
-    out_folder_path = "test_out/test_chunking"
+    # out_folder_path = "test_out/test_chunking"
 
     # Remove files:
-    folder_files = os.listdir(out_folder_path)
-    for f in folder_files:
-        os.remove(os.path.join(out_folder_path, f))
+    # folder_files = os.listdir(out_folder_path)
+    # for f in folder_files:
+    #     os.remove(os.path.join(out_folder_path, f))
 
     ### Test the reduce_data function
-    reduce_data("data_files/aisdk-2024-02-18.csv", out_folder_path)
-    # read one of the created files
-    d = pd.read_parquet("test_out/test_chunking/aisdk-2024-02-18_219011048.parquet")
+    # reduce_data("data_files/aisdk-2024-02-18.csv", out_folder_path)
+    # d = pd.read_parquet("test_out/test_chunking/aisdk-2024-02-18_219011048.parquet")
 
 
     ### Other testing:
-    today = load_csv_file("data_files/aisdk-2024-02-18.csv")
-    today.memory_usage() # gives the memory usage of the dataframe in bytes
+    today = load_csv_file("data_files/test_aug_1_sailboat.csv")
+    today.memory_usage() # memory usage of the dataframe in bytes
     yesterday = load_csv_file("data_files/aisdk-2024-02-17.csv")
     grouped = today.groupby("MMSI")
     #groups = list(grouped.groups.keys())
