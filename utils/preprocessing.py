@@ -6,6 +6,7 @@ import zipfile
 import geopandas as gpd
 import movingpandas as mpd
 import pandas as pd
+import dask
 
 from utils.project_types import MapProjection, ShipType, TimeFrequency
 
@@ -33,6 +34,16 @@ def unzip_ais_data(zip_file_path: str, out_folder: str) -> list:
 
     return extracted_files
 
+def load_raw_ais_file(filepath: str) -> dask.dataframe:
+    """ Loads a raw ais file into a dask dataframe"""
+    ddf = dask.dataframe.read_csv(filepath,
+                            parse_dates=["# Timestamp"],
+                            dayfirst=True,
+                            usecols=["# Timestamp", "MMSI", "Ship type", "Latitude", "Longitude"],
+                            ).rename(columns={"Latitude": "lat", "Longitude": "lon",\
+                                               "# Timestamp": "timestamp", "Ship type": "ship_type"})
+                            
+    return ddf
 
 def load_csv_file(filepath: str) -> pd.DataFrame:
     """Loads a a full (no chunking) ais*.csv file from https://web.ais.dk/aisdata/,
