@@ -88,28 +88,7 @@ def to_geodf(
     )
     geo_ais_df.crs = MapProjection.WGS84.value  # original angular map projection
     epsg_code = int(projection.value.split(":")[-1])
-    return geo_ais_df.to_crs(epsg=epsg_code).drop(columns=["lat", "lon", "Ship type"])
-
-
-# def check_time_gap_threshold(
-#     ais_trace: list[int], time_gap_threshold: dt.timedelta
-# ) -> dt.timedelta | None:
-#     """Check that the AIS has no time gaps strictly larger than @time_gap_threshold"""
-#     assert all(
-#         ais_trace[i].datetime <= ais_trace[i + 1].datetime
-#         for i in range(len(ais_trace) - 1)
-#     ), "AIS trace is not in chronological order"
-
-#     for i in range(0, len(ais_trace)):
-#         if i == len(ais_trace) - 1:
-#             return None
-#         curr_time = ais_trace[i].datetime
-#         next_time = ais_trace[i + 1].datetime
-#         time_diff = next_time - curr_time
-
-#         if time_diff.total_seconds() > time_gap_threshold.total_seconds():
-#             return time_diff
-#     return None
+    return geo_ais_df.to_crs(epsg=epsg_code)
 
 
 def reduce_data(csv_file_path: str, out_folder_path: str):
@@ -146,24 +125,14 @@ def read_parquet(file_path: str, filter_MMSI: int | None = None) -> pd.DataFrame
 
 
 def extend_main_trajectory_file(
-    df: pd.DataFrame, file_name: str, main_file_path: str = "test/out"
+    df: pd.DataFrame, main_file_path: str
 ) -> None:
     """If a main_trajectory file exists, it extends the main_trajectories files with the ones provided in @df.
     If the file does not exists, create it."""
-
-    if not os.path.exists(main_file_path):
-        os.mkdir(main_file_path)
-
-    # TODO if the main file does not exists yet, then create an empty one:
-    # if not os.path.exists(main_file_path + "/main_trajectories.parquet"):
-
-
-    df.to_parquet(
-        path=file_path + file_name,
-    )
-
-
-
+    if os.path.exists(main_file_path):
+        df.to_parquet(main_file_path, engine="fastparquet", append=True)
+    else:
+        df.to_parquet(main_file_path, engine="fastparquet")
 
 
 if __name__ == "__main__":

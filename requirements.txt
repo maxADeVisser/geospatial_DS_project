@@ -102,3 +102,5 @@ webencodings==0.5.1
 xyzservices==2023.10.1
 zict==3.0.0
 zipp==3.17.0
+plotly
+fastparquet

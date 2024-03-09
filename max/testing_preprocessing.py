@@ -12,7 +12,9 @@ from utils.project_types import TimeFrequency
 # check in test/test_data/_test_data.py for how to generate the file used here
 aug1 = load_csv_file("data_files/test_aug_1_sailboat.csv").drop(columns=["Ship type"])
 aug1 = remove_faulty_ais_readings(aug1)
-aug1
+
+# Create test file:
+aug1[:10_000].to_parquet("test/out/small10k.parquet", engine='fastparquet')
 
 # %%
 grouped = aug1.groupby("MMSI")
