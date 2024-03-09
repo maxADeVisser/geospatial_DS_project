@@ -1,11 +1,43 @@
 import datetime as dt
 import os
+import zipfile
 
 import geopandas as gpd
 import movingpandas as mpd
 import pandas as pd
 
 from utils.project_types import MapProjection, ShipType, TimeFrequency
+
+
+def download_ais_data(date: dt.date, out_folder: str) -> str:
+    """Downloads the AIS data for a given date from https://web.ais.dk/aisdata/ and saves it to @out_folder"""
+    # Check if the folder exists, if not, create it
+    if not os.path.exists(out_folder):
+        os.makedirs(out_folder)
+
+    # Download the file
+        
+    url = rf"http://web.ais.dk/aisdata/aisdk-{date}.zip"
+    print(f"Downloading {url} to {out_folder}")
+    file_name = f"aisdk-{date}.zip"
+    os.system(f"wget {url} -O {os.path.join(out_folder, file_name)}")
+    return os.path.join(out_folder, file_name)
+
+
+def unzip_ais_data(zip_file_path: str, out_folder: str) -> list:
+    """Unzips the AIS data file to @out_folder and returns the list of extracted file names"""
+    # Create the output folder if it doesn't exist
+    if not os.path.exists(out_folder):
+        os.makedirs(out_folder)
+
+    # Extract the zip file
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        zip_ref.extractall(out_folder)
+
+    # Get the list of extracted file names
+    extracted_files = zip_ref.namelist()
+
+    return extracted_files
 
 
 def load_csv_file(filepath: str) -> pd.DataFrame:
