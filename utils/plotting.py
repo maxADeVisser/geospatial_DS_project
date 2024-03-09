@@ -99,11 +99,10 @@ def plot_AIS_trace(ais_df: pd.DataFrame, trace_granularity: int = 5) -> None:
 
 
 def plot_static(
-    trajectory_df: gpd.GeoDataFrame
+    trajectory_df: gpd.GeoDataFrame, size: int = 12, alpha: float = 0.1
 ) -> None:
     """Plots the AIS trace on a static map"""
-    _, ax = plt.subplots(1)
-    ax.set_title(f"Trajectory of MMSI: {trajectory_df['MMSI'].iloc[0]}\n")
-    trajectory_df.plot(ax=ax)
-    ax.set_axis_off()
+    _, ax = plt.subplots(1, figsize=(size, size))
+    trajectory_df.plot(ax=ax, alpha=alpha)
+    #ax.set_axis_off()
     cx.add_basemap(ax, crs=trajectory_df.crs, source=cx.providers.CartoDB.Positron)

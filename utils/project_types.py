@@ -1,5 +1,12 @@
 from enum import Enum
 
+### Constants
+
+# Used for filtered AIS points
+AIS_MIN_LON = 4.250
+AIS_MIN_LAT = 53.6
+AIS_MAX_LON = 19.5
+AIS_MAX_LAT = 61.0
 
 class TimeFrequency(Enum):
     """A enum class to represent the different time frequencies for resampling the AIS dataset."""
