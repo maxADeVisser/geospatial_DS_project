@@ -1,10 +1,11 @@
 import contextily as cx
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from matplotlib import pyplot as plt
 
-from utils.data_prep import to_geodf
+from utils.preprocessing import to_geodf
 from utils.project_types import MapProjection
 
 
@@ -98,13 +99,11 @@ def plot_AIS_trace(ais_df: pd.DataFrame, trace_granularity: int = 5) -> None:
 
 
 def plot_static(
-    trajectory_df: pd.DataFrame, crs: MapProjection = MapProjection.WGS84
+    trajectory_df: gpd.GeoDataFrame
 ) -> None:
     """Plots the AIS trace on a static map"""
-    geo = to_geodf(trajectory_df)
-    geo.crs = crs.value
-    fig, ax = plt.subplots(1)
+    _, ax = plt.subplots(1)
     ax.set_title(f"Trajectory of MMSI: {trajectory_df['MMSI'].iloc[0]}\n")
-    geo.plot(ax=ax)
+    trajectory_df.plot(ax=ax)
     ax.set_axis_off()
-    cx.add_basemap(ax, crs=geo.crs, source=cx.providers.CartoDB.Positron)
+    cx.add_basemap(ax, crs=trajectory_df.crs, source=cx.providers.CartoDB.Positron)

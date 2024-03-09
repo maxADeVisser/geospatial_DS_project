@@ -10,7 +10,9 @@ class TimeFrequency(Enum):
     hour_1 = "1H"
 
 class MapProjection(Enum):
-    WGS84 = "EPSG:4326"
+    WGS84 = "EPSG:4326" # longitude / lattidude
+    DNN = "EPSG:5733" # denmark on shore
+    UTMzone32n = "EPSG:25832" # use this one. Unit: meter
 
 class ShipType(Enum):
     """A enum class to represent the different ship types in the AIS dataset"""

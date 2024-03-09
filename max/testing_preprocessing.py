@@ -3,9 +3,9 @@ import contextily as cx
 import matplotlib.pyplot as plt
 from IPython.display import display
 
-from utils.data_prep import (change_data_frequency, load_csv_file,
-                             remove_faulty_ais_readings, to_geodf)
 from utils.plotting import plot_AIS_trace, plot_static
+from utils.preprocessing import (change_data_frequency, load_csv_file,
+                                 remove_faulty_ais_readings, to_geodf)
 from utils.project_types import TimeFrequency
 
 # %% Load the data
@@ -33,9 +33,11 @@ groups = list(grouped.groups.keys())
 # ?  MMSI on a ongoing trip: 211215180
 selected_MMSI = 211215180
 MMSI = aug1[aug1['MMSI'] == selected_MMSI]
+MMSI = to_geodf(MMSI)
 
 # change time frequency of data and plot
 plot_AIS_trace(change_data_frequency(MMSI, TimeFrequency.min_15))
+
 
 plot_static(MMSI)
 
