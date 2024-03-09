@@ -3,23 +3,25 @@ import os
 import subprocess
 import zipfile
 
+import dask
 import geopandas as gpd
 import movingpandas as mpd
 import pandas as pd
-import dask
 
 from utils.project_types import MapProjection, ShipType, TimeFrequency
 
 
-def download_ais_data(date: dt.date, out_folder: str) -> str:
+def download_ais_data(date: dt.date, out_folder: str, verbose: bool = False) -> str:
     """Downloads the AIS data for a given date from https://web.ais.dk/aisdata/ and saves it to @out_folder"""
     date_string = date.strftime('%Y-%m-%d')
     url = f"http://web.ais.dk/aisdata/aisdk-{date_string}.zip"
-    print(f"Downloading {url} to {out_folder}")
+    print(f"Downloading {url} to path: {out_folder}")
     file_name = f"aisdk-{date_string}.zip"
     download_command = f"wget {url} -O {os.path.join(out_folder, file_name)}"
     # Use subprocess.run to execute the command and suppress output
-    subprocess.run(download_command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    if verbose:
+        print(f"File name: {file_name}\nDownload command: {download_command}")
+    subprocess.run(download_command, shell=True)#, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     return os.path.join(out_folder, file_name)
 
@@ -32,7 +34,7 @@ def unzip_ais_data(zip_file_path: str, out_folder: str) -> list:
     # Get the list of extracted file names
     extracted_files = zip_ref.namelist()
 
-    return extracted_files
+    return [os.path.join(out_folder, x) for x in extracted_files]
 
 def load_raw_ais_file(filepath: str) -> dask.dataframe:
     """ Loads a raw ais file into a dask dataframe"""
@@ -42,7 +44,7 @@ def load_raw_ais_file(filepath: str) -> dask.dataframe:
                             usecols=["# Timestamp", "MMSI", "Ship type", "Latitude", "Longitude"],
                             ).rename(columns={"Latitude": "lat", "Longitude": "lon",\
                                                "# Timestamp": "timestamp", "Ship type": "ship_type"})
-                            
+
     return ddf
 
 def load_csv_file(filepath: str) -> pd.DataFrame:
@@ -68,14 +70,11 @@ def remove_faulty_ais_readings(ais_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def change_data_frequency(
-    ais_df: gpd.GeoDataFrame, data_freq: TimeFrequency
-) -> gpd.GeoDataFrame:
+    ais_df: pd.DataFrame, data_freq: TimeFrequency
+) -> pd.DataFrame:
     """Changes the data frequency of the dataframe.
     Resample every @data_freq and return the first value of each group."""
-    crs = int(str(ais_df.crs).split(":")[-1])
-    ais_df = ais_df.resample(rule=data_freq.value).first()
-    ais_df.crs = crs
-    return ais_df  # resample based on first index (timestamp)
+    return ais_df.resample(rule=data_freq.value).first() # resample based on first index (timestamp)
 
 
 def to_geodf(
