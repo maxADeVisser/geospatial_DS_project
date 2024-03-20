@@ -5,9 +5,6 @@ import pandas as pd
 import plotly.graph_objects as go
 from matplotlib import pyplot as plt
 
-from utils.preprocessing import to_geodf
-from utils.project_types import MapProjection
-
 
 def zoom_center(
     lons: list[float],
@@ -99,10 +96,13 @@ def plot_AIS_trace(ais_df: pd.DataFrame, trace_granularity: int = 5) -> None:
 
 
 def plot_static(
-    trajectory_df: gpd.GeoDataFrame, size: int = 12, alpha: float = 0.1
+    trajectory_df: gpd.GeoDataFrame,
+    size: int = 12,
+    alpha: float = 0.1,
+    marker_size: int = 1,
 ) -> None:
     """Plots the AIS trace on a static map"""
     _, ax = plt.subplots(1, figsize=(size, size))
-    trajectory_df.plot(ax=ax, alpha=alpha)
-    #ax.set_axis_off()
+    trajectory_df.plot(ax=ax, alpha=alpha, color="blue", markersize=marker_size)
+    # ax.set_axis_off()
     cx.add_basemap(ax, crs=trajectory_df.crs, source=cx.providers.CartoDB.Positron)
