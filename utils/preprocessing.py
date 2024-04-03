@@ -32,6 +32,7 @@ def download_ais_data(date: dt.date, out_folder: str, verbose: bool = False) -> 
 def unzip_ais_data(zip_file_path: str, out_folder: str) -> list:
     """Unzips the AIS data file to @out_folder and returns the list of extracted file names"""
     # Extract the zip file
+    print("Extracting files...")
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
         zip_ref.extractall(out_folder)
 

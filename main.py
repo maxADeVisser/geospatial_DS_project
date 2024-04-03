@@ -9,7 +9,6 @@ import pandas as pd
 from dask.dataframe.utils import make_meta
 from tqdm import tqdm
 
-from utils.plotting import plot_static
 from utils.preprocessing import (
     change_data_frequency,
     download_ais_data,
@@ -20,12 +19,15 @@ from utils.preprocessing import (
 )
 from utils.project_types import AIS_MAX_LAT, AIS_MAX_LON, AIS_MIN_LAT, AIS_MIN_LON
 
+# %%
+
 
 def main(DATE: dt.datetime) -> None:
     # %% 1. download files
-    downloaded_data_path: str = download_ais_data(DATE, DATA_FILES, verbose=True)
-    print("Extracting files...")
-    extracted_files_path: list[str] = unzip_ais_data(downloaded_data_path, DATA_FILES)
+    downloaded_data_path: str = download_ais_data(DATE, TEMP_DATA_DIR, verbose=True)
+    extracted_files_path: list[str] = unzip_ais_data(
+        downloaded_data_path, TEMP_DATA_DIR
+    )
 
     # TESTING:
     # extracted_files_path: list[str] = unzip_ais_data(
@@ -89,32 +91,55 @@ def main(DATE: dt.datetime) -> None:
     for file in extracted_files_path:
         os.remove(file)
 
-    print(f"Done processing {DATE.date()}!")
+    print(f"Done processing {DATE.date()}!\n\n")
 
 
 # %%
 if __name__ == "__main__":
     # PIPELINE INPUTS:
-    ALL_DATES = [
-        dt.datetime(2023, 8, 1),
-        dt.datetime(2023, 8, 2),
-        dt.datetime(2023, 8, 3),
-        dt.datetime(2023, 8, 4),
-        dt.datetime(2023, 8, 5),
-        dt.datetime(2023, 8, 6),
-        dt.datetime(2023, 8, 7),
-        dt.datetime(2023, 8, 8),
-        dt.datetime(2023, 8, 9),
-        dt.datetime(2023, 8, 10),
-    ]  # list of dates to process
-    OUTPUT_FILE_PATH = "test/out/traj.parquet"  # main file with trajectories
-    DATA_FILES = "data_files"  # folder to store the downloaded data (temporarily)
-    RESET_MAIN_FILE = True  # Set to True to reset the main file
+    OUTPUT_FILE_PATH = (
+        "out/ais_data/traj_third_10_days.parquet"  # main file with trajectories
+    )
+    TEMP_DATA_DIR = "out/temp_data"  # temp dir to store downloaded data
+    RESET_MAIN_FILE = False  # Set to True to reset the main file
+    PROCESS_DATES = [
+        # dt.datetime(2023, 8, 1),
+        # dt.datetime(2023, 8, 2),
+        # dt.datetime(2023, 8, 3),
+        # dt.datetime(2023, 8, 4),
+        # dt.datetime(2023, 8, 5),
+        # dt.datetime(2023, 8, 6),
+        # dt.datetime(2023, 8, 7),
+        # dt.datetime(2023, 8, 8),
+        # dt.datetime(2023, 8, 9),
+        # dt.datetime(2023, 8, 10),
+        # dt.datetime(2023, 8, 11),
+        # dt.datetime(2023, 8, 12),
+        # dt.datetime(2023, 8, 13),
+        # dt.datetime(2023, 8, 14),
+        # dt.datetime(2023, 8, 15),
+        # dt.datetime(2023, 8, 16),
+        # dt.datetime(2023, 8, 17),
+        # dt.datetime(2023, 8, 18),
+        # dt.datetime(2023, 8, 19),
+        # dt.datetime(2023, 8, 20),
+        dt.datetime(2023, 8, 21),
+        dt.datetime(2023, 8, 22),
+        dt.datetime(2023, 8, 23),
+        dt.datetime(2023, 8, 24),
+        dt.datetime(2023, 8, 25),
+        dt.datetime(2023, 8, 26),
+        dt.datetime(2023, 8, 27),
+        dt.datetime(2023, 8, 28),
+        dt.datetime(2023, 8, 29),
+        dt.datetime(2023, 8, 30),
+        dt.datetime(2023, 8, 31),
+    ]
 
     # Run pipeline:
     # Reset main file if needed:
     if os.path.exists(OUTPUT_FILE_PATH) and RESET_MAIN_FILE:
         os.remove(OUTPUT_FILE_PATH)
 
-    for i in tqdm(range(0, len(ALL_DATES)), desc="Processing dates"):
-        main(ALL_DATES[i])
+    for i in tqdm(range(0, len(PROCESS_DATES)), desc="Downloading AIS data"):
+        main(PROCESS_DATES[i])
