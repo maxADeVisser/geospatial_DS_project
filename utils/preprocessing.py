@@ -2,6 +2,7 @@ import datetime as dt
 import os
 import subprocess
 import zipfile
+from typing import Any
 
 import dask
 import geopandas as gpd
@@ -40,7 +41,7 @@ def unzip_ais_data(zip_file_path: str, out_folder: str) -> list:
     return [os.path.join(out_folder, x) for x in extracted_files]
 
 
-def load_raw_ais_file(filepath: str) -> dask.dataframe:
+def load_raw_ais_file(filepath: str) -> Any:
     """Loads a raw ais file into a dask dataframe"""
     ddf = dask.dataframe.read_csv(
         filepath,
@@ -100,7 +101,7 @@ def to_geodf(
     into @projection (and drops non-used columns as of now)"""
     geo_ais_df = gpd.GeoDataFrame(
         ais_df, geometry=gpd.points_from_xy(ais_df.lon, ais_df.lat)
-    )
+    ).drop(columns=["lat", "lon"])
     geo_ais_df.crs = MapProjection.WGS84.value  # original angular map projection
     epsg_code = int(projection.value.split(":")[-1])
     return geo_ais_df.to_crs(epsg=epsg_code)
@@ -146,42 +147,42 @@ def extend_main_trajectory_file(df: pd.DataFrame, main_file_path: str) -> None:
         df.to_parquet(main_file_path, engine="fastparquet")
 
 
-if __name__ == "__main__":
-    today = load_csv_file("data_files/aisdk-2023-08-01.csv")
-    today.memory_usage()  # memory usage of the dataframe in bytes
-    print(f"df uses {aug1.memory_usage().sum() / 1_000_000} Mb")
-    yesterday = load_csv_file("data_files/aisdk-2024-02-17.csv")
-    grouped = today.groupby("MMSI")
-    # groups = list(grouped.groups.keys())
+# if __name__ == "__main__":
+# today = load_csv_file("data_files/aisdk-2023-08-01.csv")
+# today.memory_usage()  # memory usage of the dataframe in bytes
+# print(f"df uses {aug1.memory_usage().sum() / 1_000_000} Mb")
+# yesterday = load_csv_file("data_files/aisdk-2024-02-17.csv")
+# grouped = today.groupby("MMSI")
+# # groups = list(grouped.groups.keys())
 
-    ### Stiching together data from multiple days
-    MMSI = 538005405  # MMSI that has a ongoing trajectory
-    today_vessel1 = grouped.get_group(MMSI)[1:]  # remove the first row (outlier)
-    yesterday_group = yesterday.groupby("MMSI")
-    yesterday_vessel1 = yesterday_group.get_group(MMSI)
+# ### Stiching together data from multiple days
+# MMSI = 538005405  # MMSI that has a ongoing trajectory
+# today_vessel1 = grouped.get_group(MMSI)[1:]  # remove the first row (outlier)
+# yesterday_group = yesterday.groupby("MMSI")
+# yesterday_vessel1 = yesterday_group.get_group(MMSI)
 
-    # Concatenate the two dataframes
-    concatenated = pd.concat([yesterday_vessel1, today_vessel1])
-    changed_freq = change_data_frequency(concatenated, TimeFrequency.min_10)
-    geo = to_geodf(changed_freq)
-    geo.plot()
+# # Concatenate the two dataframes
+# concatenated = pd.concat([yesterday_vessel1, today_vessel1])
+# changed_freq = change_data_frequency(concatenated, TimeFrequency.min_10)
+# geo = to_geodf(changed_freq)
+# geo.plot()
 
-    # Creating a moving pandas trajectory and plotting it
-    # to install do:
-    # conda install hvplot
-    # conda install -c pyviz geoviews-core
-    traj = mpd.Trajectory(
-        df=changed_freq, traj_id=str(MMSI), t=changed_freq.index, x="lon", y="lat"
-    )
-    traj.df  # the dataframe
+# # Creating a moving pandas trajectory and plotting it
+# # to install do:
+# # conda install hvplot
+# # conda install -c pyviz geoviews-core
+# traj = mpd.Trajectory(
+#     df=changed_freq, traj_id=str(MMSI), t=changed_freq.index, x="lon", y="lat"
+# )
+# traj.df  # the dataframe
 
-    # Detect stops in the trajectory
-    detector = mpd.TrajectoryStopDetector(traj)
-    stops = detector.get_stop_points(
-        min_duration=dt.timedelta(seconds=600), max_diameter=50
-    )
+# # Detect stops in the trajectory
+# detector = mpd.TrajectoryStopDetector(traj)
+# stops = detector.get_stop_points(
+#     min_duration=dt.timedelta(seconds=600), max_diameter=50
+# )
 
-    import hvplot.pandas
+# import hvplot.pandas
 
-    # plot stops
-    stops.hvplot(geo=True, tiles=True, hover_cols="all")
+# # plot stops
+# stops.hvplot(geo=True, tiles=True, hover_cols="all")
