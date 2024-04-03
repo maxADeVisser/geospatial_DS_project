@@ -1,8 +1,10 @@
 import contextily as cx
 import geopandas as gpd
+import movingpandas as mpd
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import seaborn as sns
 from matplotlib import pyplot as plt
 
 
@@ -106,3 +108,31 @@ def plot_static(
     trajectory_df.plot(ax=ax, alpha=alpha, color="blue", markersize=marker_size)
     # ax.set_axis_off()
     cx.add_basemap(ax, crs=trajectory_df.crs, source=cx.providers.CartoDB.Positron)
+
+
+def plot_trajs(trajs: mpd.TrajectoryCollection, a: float = 0.3) -> None:
+    _, ax = plt.subplots(1, figsize=(12, 12))
+    trajs.plot(ax=ax, alpha=a, color="blue", linewidth=1)
+    cx.add_basemap(
+        ax, crs=trajs.trajectories[0].crs, source=cx.providers.CartoDB.Positron
+    )
+    plt.show()
+
+
+def plot_traj_length_distribution(trajs: mpd.TrajectoryCollection):
+    """Plot the distribution of the length of the splitted trajectories"""
+    lengths = [traj.get_length() for traj in trajs.trajectories]
+    sns.histplot(lengths, bins=50)
+    plt.xlabel("Length of Trajectory (meters)")
+
+
+def plot_traj(trajs: mpd.Trajectory) -> None:
+    """Plot a single trajectory"""
+    return trajs.hvplot(
+        title=f"{trajs.id}",
+        line_width=3,
+        line_color="blue",
+        # c="speed (km/h)",
+        colorbar=True,
+        cmap="RdYlGn",
+    )
