@@ -9,6 +9,7 @@ __pycache__/
 test_out/
 data_files/
 .python-version
+kyst*/
 
 # C extensions
 *.so

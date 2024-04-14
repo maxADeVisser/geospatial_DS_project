@@ -106,8 +106,8 @@ def plot_static(
     """Plots the AIS trace on a static map"""
     _, ax = plt.subplots(1, figsize=(size, size))
     trajectory_df.plot(ax=ax, alpha=alpha, color="blue", markersize=marker_size)
-    # ax.set_axis_off()
     cx.add_basemap(ax, crs=trajectory_df.crs, source=cx.providers.CartoDB.Positron)
+    plt.show()
 
 
 def plot_trajs(trajs: mpd.TrajectoryCollection, a: float = 0.3) -> None:

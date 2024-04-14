@@ -9,7 +9,7 @@ import geopandas as gpd
 import movingpandas as mpd
 import pandas as pd
 
-from utils.project_types import MapProjection, ShipType, TimeFrequency
+from utils.project_types import MapProjection, TimeFrequency
 
 
 def download_ais_data(date: dt.date, out_folder: str, verbose: bool = False) -> str:
@@ -79,6 +79,7 @@ def load_csv_file(filepath: str) -> pd.DataFrame:
     return df
 
 
+# NOT USED I THINK
 def remove_faulty_ais_readings(ais_df: pd.DataFrame) -> pd.DataFrame:
     return ais_df.loc[(ais_df["lon"] != 0.0)]
 
@@ -106,28 +107,6 @@ def to_geodf(
     geo_ais_df.crs = MapProjection.WGS84.value  # original angular map projection
     epsg_code = int(projection.value.split(":")[-1])
     return geo_ais_df.to_crs(epsg=epsg_code)
-
-
-def reduce_data(csv_file_path: str, out_folder_path: str):
-    """NOT WORKING PROPERLY YET... data is very messy (surprise, surprise)"""
-    ais_df = load_csv_file(csv_file_path)
-
-    # Extract csv file name
-    csv_file_name = csv_file_path.split("/")[-1].split(".")[0]
-
-    # Group by MMSI
-    grouped = ais_df.groupby("MMSI")
-
-    c = 0
-    for MMSI, group in grouped:
-        # The data has "time gaps", so when resampling, there will be missing values. We simply remove these:
-        updated_frequency = change_data_frequency(group, TimeFrequency.min_10).dropna()
-
-        updated_frequency.drop(columns=["MMSI"]).to_parquet(
-            f"{out_folder_path}/{csv_file_name}_{MMSI}.parquet"
-        )
-        c += 1
-    print(f"Number of files created: {c}")
 
 
 def read_parquet(file_path: str, filter_MMSI: int | None = None) -> pd.DataFrame:
