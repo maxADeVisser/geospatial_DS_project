@@ -138,7 +138,6 @@ def plot_traj(trajs: mpd.Trajectory) -> None:
         title=f"{trajs.id}",
         line_width=3,
         line_color="blue",
-        # c="speed (km/h)",
         colorbar=True,
         cmap="RdYlGn",
     )
