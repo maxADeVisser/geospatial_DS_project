@@ -47,9 +47,8 @@ def main(DATE: dt.datetime) -> None:
     # %% 3. (Clean data) Remove faulty AIS readings and filter for Sailboats
     # Filter for only sailing boats:
     print("Filtering data...")
-    ddf = ddf.map_partitions(
-        lambda df_partition: df_partition.query('ship_type == "Sailing"')
-    )
+    query_str = f"ship_type == '{SHIP_TYPE}'"
+    ddf = ddf.map_partitions(lambda df_partition: df_partition.query(query_str))
     # Filter out faulty ais readings (readings that are outside Danish waters)
     query_str = f"lon > {AIS_MIN_LON} and lat > {AIS_MIN_LAT} and lon < {AIS_MAX_LON} and lat < {AIS_MAX_LAT}"
     ddf = ddf.map_partitions(lambda df_partition: df_partition.query(query_str))
@@ -98,21 +97,22 @@ def main(DATE: dt.datetime) -> None:
 if __name__ == "__main__":
     # PIPELINE INPUTS:
     OUTPUT_FILE_PATH = (
-        "out/ais_data/traj_third_10_days.parquet"  # main file with trajectories
+        "out/ais_data/fishing_first_10_days.parquet"  # main file with trajectories
     )
     TEMP_DATA_DIR = "out/temp_data"  # temp dir to store downloaded data
-    RESET_MAIN_FILE = False  # Set to True to reset the main file
+    SHIP_TYPE = "Fishingxhhh"
+    RESET_MAIN_FILE = True  # Set to True to reset the main file if it exists
     PROCESS_DATES = [
-        # dt.datetime(2023, 8, 1),
-        # dt.datetime(2023, 8, 2),
-        # dt.datetime(2023, 8, 3),
-        # dt.datetime(2023, 8, 4),
-        # dt.datetime(2023, 8, 5),
-        # dt.datetime(2023, 8, 6),
-        # dt.datetime(2023, 8, 7),
-        # dt.datetime(2023, 8, 8),
-        # dt.datetime(2023, 8, 9),
-        # dt.datetime(2023, 8, 10),
+        dt.datetime(2023, 8, 1),
+        dt.datetime(2023, 8, 2),
+        dt.datetime(2023, 8, 3),
+        dt.datetime(2023, 8, 4),
+        dt.datetime(2023, 8, 5),
+        dt.datetime(2023, 8, 6),
+        dt.datetime(2023, 8, 7),
+        dt.datetime(2023, 8, 8),
+        dt.datetime(2023, 8, 9),
+        dt.datetime(2023, 8, 10),
         # dt.datetime(2023, 8, 11),
         # dt.datetime(2023, 8, 12),
         # dt.datetime(2023, 8, 13),
@@ -123,17 +123,17 @@ if __name__ == "__main__":
         # dt.datetime(2023, 8, 18),
         # dt.datetime(2023, 8, 19),
         # dt.datetime(2023, 8, 20),
-        dt.datetime(2023, 8, 21),
-        dt.datetime(2023, 8, 22),
-        dt.datetime(2023, 8, 23),
-        dt.datetime(2023, 8, 24),
-        dt.datetime(2023, 8, 25),
-        dt.datetime(2023, 8, 26),
-        dt.datetime(2023, 8, 27),
-        dt.datetime(2023, 8, 28),
-        dt.datetime(2023, 8, 29),
-        dt.datetime(2023, 8, 30),
-        dt.datetime(2023, 8, 31),
+        # dt.datetime(2023, 8, 21),
+        # dt.datetime(2023, 8, 22),
+        # dt.datetime(2023, 8, 23),
+        # dt.datetime(2023, 8, 24),
+        # dt.datetime(2023, 8, 25),
+        # dt.datetime(2023, 8, 26),
+        # dt.datetime(2023, 8, 27),
+        # dt.datetime(2023, 8, 28),
+        # dt.datetime(2023, 8, 29),
+        # dt.datetime(2023, 8, 30),
+        # dt.datetime(2023, 8, 31),
     ]
 
     # Run pipeline:
