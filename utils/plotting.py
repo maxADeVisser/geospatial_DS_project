@@ -119,11 +119,17 @@ def plot_trajs(trajs: mpd.TrajectoryCollection, a: float = 0.3) -> None:
     plt.show()
 
 
-def plot_traj_length_distribution(trajs: mpd.TrajectoryCollection):
+def plot_traj_length_distribution(
+    trajs: mpd.TrajectoryCollection, bins: int = 50
+) -> None:
     """Plot the distribution of the length of the splitted trajectories"""
-    lengths = [traj.get_length() for traj in trajs.trajectories]
-    sns.histplot(lengths, bins=50)
-    plt.xlabel("Length of Trajectory (meters)")
+    lengths = [traj.get_length() / 1_000 for traj in trajs.trajectories]
+    sns.histplot(lengths, bins=bins)
+    plt.xlabel("Length of Trajectory (km)")
+    plt.ylabel("Counts")
+    plt.grid(axis="y", alpha=0.75)
+    plt.gca().set_axisbelow(True)  # Set grid lines behind bars
+    plt.show()
 
 
 def plot_traj(trajs: mpd.Trajectory) -> None:
@@ -136,3 +142,8 @@ def plot_traj(trajs: mpd.Trajectory) -> None:
         colorbar=True,
         cmap="RdYlGn",
     )
+
+
+def plot_speed_for_traj(traj: mpd.Trajectory) -> None:
+    """Plot the speed of the TrajectoryCollection"""
+    traj.plot(column="speed (km/h)", linewidth=5, capstyle="round", legend=True)
