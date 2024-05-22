@@ -4,8 +4,12 @@ import matplotlib.pyplot as plt
 from IPython.display import display
 
 from utils.plotting import plot_AIS_trace, plot_static
-from utils.preprocessing import (change_data_frequency, load_csv_file,
-                                 remove_faulty_ais_readings, to_geodf)
+from utils.preprocessing import (
+    change_data_frequency,
+    load_csv_file,
+    remove_faulty_ais_readings,
+    to_geodf,
+)
 from utils.project_types import TimeFrequency
 
 # %% Load the data
@@ -14,7 +18,7 @@ aug1 = load_csv_file("data_files/test_aug_1_sailboat.csv").drop(columns=["Ship t
 aug1 = remove_faulty_ais_readings(aug1)
 
 # Create test file:
-aug1[:10_000].to_parquet("test/out/small10k.parquet", engine='fastparquet')
+aug1[:10_000].to_parquet("test/out/small10k.parquet", engine="fastparquet")
 
 # %%
 grouped = aug1.groupby("MMSI")
@@ -34,13 +38,13 @@ groups = list(grouped.groups.keys())
 
 # ?  MMSI on a ongoing trip: 211215180
 selected_MMSI = 211215180
-MMSI = aug1[aug1['MMSI'] == selected_MMSI]
+MMSI = aug1[aug1["MMSI"] == selected_MMSI]
 MMSI = to_geodf(MMSI)
 
 # change time frequency of data and plot
-#plot_AIS_trace(change_data_frequency(MMSI, TimeFrequency.min_15))
+# plot_AIS_trace(change_data_frequency(MMSI, TimeFrequency.min_15))
 
 
-#plot_static(MMSI)
+# plot_static(MMSI)
 
 # %%

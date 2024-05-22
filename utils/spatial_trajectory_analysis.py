@@ -9,16 +9,13 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
-from utils.plotting import plot_static, plot_traj_length_distribution, plot_trajs
-from utils.postprocessing import create_traj_collection, load_and_parse_gdf_from_file
+from utils.postprocessing import load_and_parse_gdf_from_file
 
 
 def get_cluster_df_and_matrix(trajs_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     """Gets the starting coordinates and ending coordinates of the trajectories and labels them as start and end respectively."""
-    # redunant computation below. Can just use timestamps from the trajs_gdf to get start and end locations
     trajs = mpd.TrajectoryCollection(
         trajs_gdf.set_index("timestamp"), traj_id_col="traj_id", t="timestamp"
     )
@@ -52,7 +49,8 @@ def run_DBSCAN(
     distance_metric: str = "euclidean",
     verbose: bool = False,
 ) -> np.ndarray:
-    """Runs DBSCAN on the cluster matrix and returns the cluster labels for each row in the cluster_matrix"""
+    """Runs DBSCAN on the cluster matrix and returns the cluster labels for each row in the cluster_matrix. eps has the unit of the CRS of the data"""
+
     db = DBSCAN(
         eps=eps,
         min_samples=min_samples,
@@ -63,13 +61,10 @@ def run_DBSCAN(
     cluster_labels = db.labels_
     if verbose:
         print(f"Number of clusters: {len(set(cluster_labels))}")
-        print(f"Number of noise points: {list(cluster_labels).count(-1)}")
+        print(
+            f"Fraction of noise points: {np.sum(cluster_labels == -1) / len(cluster_labels)}"
+        )
     return cluster_labels
-
-
-def scale_cluster_matrix(cluster_matrix: np.ndarray) -> np.ndarray:
-    """Scales the cluster matrix using the StandardScaler"""
-    return StandardScaler().fit_transform(cluster_matrix)
 
 
 def elbow_plot_DBSCAN(
@@ -77,8 +72,12 @@ def elbow_plot_DBSCAN(
     iterating_param: Literal["eps", "min_samples"],
     varying_param: list[int],
     constant_param: int,
+    ax=None,
+    figsize=(12, 8),
 ) -> None:
-    """TODO"""
+    if ax is None:
+        _, ax = plt.subplots(1, figsize=figsize)
+
     n_clusters = []
     other_param = "min_samples" if iterating_param == "eps" else "eps"
     for param in tqdm(varying_param):
@@ -90,21 +89,25 @@ def elbow_plot_DBSCAN(
         }
         labels = run_DBSCAN(cluster_matrix, **params_dict)
         n_clusters.append(len(set(labels)))
-    plt.plot(varying_param, n_clusters, "ro-")
-    plt.xlabel(
+    ax.plot(varying_param, n_clusters, "ro-")
+    ax.set_xlabel(
         f"{iterating_param} values\nwith {other_param} being constant: {constant_param}"
     )
-    plt.ylabel("Number of clusters")
-    plt.grid()
-    plt.show()
+    ax.set_ylabel("Number of clusters")
+    ax.grid()
+    return ax
+
+
+def cluster_evalutation(X: np.ndarray, y: np.ndarray, n_outliers: int) -> float:
+    """Evaluation function for DBSCAN clustering. Returns the silhouette score minus the fraction of outliers squared. This is to penalize the model for having too many outliers."""
+    return silhouette_score(X, y, metric="euclidean") - ((n_outliers / len(y)) ** 2)
 
 
 def grid_search_DBSCAN(
     cluster_matrix: np.ndarray,
     eps_values: list[int],
     min_sample_values: list[int],
-    eval_func: Callable,
-    eval_func_kwargs: dict = {},
+    eval_func: Callable = cluster_evalutation,
     dbscan_metric: str = "euclidean",
 ) -> tuple[int, int, float]:
     """Grid search implementation. Returns the best epsilon and min_samples values for DBSCAN along with the evaluation score for thse parameters.
@@ -121,16 +124,21 @@ def grid_search_DBSCAN(
                 min,
                 distance_metric=dbscan_metric,
             )
+
+            # compute evaluation score:
             _temp_array = np.column_stack((cluster_matrix, cluster_labels))
-            # calculate evaluation score:
             if np.unique(_temp_array[:, -1]).size <= 1:  # if only one cluster is formed
                 eval_score = (-1, None)
-            else:
-                eval_score = (
-                    eval_func(
-                        _temp_array[:, :-1], _temp_array[:, -1], **eval_func_kwargs
-                    ),
-                )
+
+            n_outliers = np.sum(cluster_labels == -1)  # n elements in noise cluster
+            # eval_score = eval_func(
+            #     _temp_array[:, :-1], _temp_array[:, -1], **eval_func_kwargs
+            # ) - ((n_outliers / len(cluster_labels)) ** 2)
+            eval_score = eval_func(_temp_array[:, :-1], _temp_array[:, -1], n_outliers)
+
+            print(
+                f"Eps: {eps}, Min sample: {min}, score: {eval_score}, outliers fraction: {n_outliers / len(cluster_labels)}, n clusters: {len(set(cluster_labels))}"
+            )
             all_scores.append((eps, min, eval_score))
 
     # Get best parameters:
@@ -138,45 +146,73 @@ def grid_search_DBSCAN(
     best_score = 0.0
     best_score_idx = 0
     for idx, eval_score in enumerate(unzipped_lists[2]):
-        if isinstance(eval_score, tuple):
-            if eval_score[0] > best_score:
-                best_score = eval_score[0]
-                best_score_idx = idx
-        else:
-            continue
+        if eval_score > best_score:
+            best_score = eval_score
+            best_score_idx = idx
 
     return all_scores[best_score_idx]
+
+
+def inspect_cluster(trajs_gdf: pd.DataFrame, cluster_id: int, a=0.5) -> None:
+    plot_df = trajs_gdf.query(f"cluster_start == {cluster_id}")
+    unique_end_clusters = plot_df["cluster_end"].unique()
+    print(f"n end clusters: {unique_end_clusters.size}")
+
+    colormap = plt.get_cmap("gist_ncar")
+    colors = [colormap(i) for i in np.linspace(0, 1, unique_end_clusters.size)]
+
+    _, ax = plt.subplots(1, figsize=(12, 12))
+
+    for i, e in enumerate(unique_end_clusters):
+        endpoint_df = plot_df.query(f"cluster_end == {e}")
+        trajs = mpd.TrajectoryCollection(
+            endpoint_df.set_index("timestamp"), traj_id_col="traj_id", t="timestamp"
+        )
+        trajs.plot(ax=ax, alpha=a, color=colors[i], linewidth=1)
+
+    cx.add_basemap(
+        ax, crs=trajs.trajectories[0].crs, source=cx.providers.CartoDB.Positron
+    )
+    plt.show()
 
 
 # %%
 
 if __name__ == "__main__":
+    # Load speed-filtered trajectories:
     trajs_gdf = load_and_parse_gdf_from_file(
         "out/post_processed_ais_data/speed_filtered_trajectories.shp"
     )
 
     cluster_df, cluster_matrix = get_cluster_df_and_matrix(trajs_gdf)
-    # matrix = scale_cluster_matrix(matrix) # scaling ?
+
+    # DBSCAN parameter ranges:
+    eps_values = np.concatenate([np.arange(200, 901, 100), np.arange(1000, 5001, 500)])
+    min_sample_values = np.arange(5, 21, 3)
 
     # elbow plots
-    eps_vars = np.append(np.linspace(10, 200, 20), np.linspace(200, 1000, 9))
-    elbow_plot_DBSCAN(cluster_matrix, "eps", varying_param=eps_vars, constant_param=10)
-
-    min_samples_values = np.arange(1, 30, 1)
+    _, axs = plt.subplots(1, 2, figsize=(12, 8))
+    elbow_plot_DBSCAN(
+        cluster_matrix, "eps", varying_param=eps_values, constant_param=10, ax=axs[0]
+    )
     elbow_plot_DBSCAN(
         cluster_matrix,
         "min_samples",
-        varying_param=min_samples_values,
+        varying_param=min_sample_values,
         constant_param=1000,
+        ax=axs[1],
     )
+    plt.suptitle("Elbow plots for DBSCAN hyperparameters")
+    plt.tight_layout()
+    plt.show()
 
+    # Grid search
     best_eps, best_min_samples, best_eval_score = grid_search_DBSCAN(
         cluster_matrix,
-        [1000, 2000],
-        [10, 20],
-        eval_func=silhouette_score,  # TODO add a better evaluation function
-        eval_func_kwargs=dict(metric="euclidean"),
+        eps_values=eps_values,
+        min_sample_values=min_sample_values,
     )
+    # RES: got eps=2000, min_samples=5, outlier fraction=0.11
 
     cluster_labels = run_DBSCAN(
         cluster_matrix, eps=best_eps, min_samples=best_min_samples, verbose=True
@@ -190,5 +226,7 @@ if __name__ == "__main__":
     trajs_gdf["cluster_end"] = pd.merge(
         trajs_gdf, cluster_df.query("label == 'end'"), on="traj_id", how="left"
     )["cluster"]
+
+    # inspect_cluster(trajs_gdf, 130, a=0.5)
 
 # %%
