@@ -48,10 +48,8 @@ def get_cluster_names(
     transformer=Transformer.from_crs("epsg:25832", "epsg:4326", always_xy=True),
 ) -> pd.DataFrame:
     """Returns the location names of the cluster centers."""
-
     loc_dict = {}
-
-    cluster_centers = clusters_df.groupby("cluster")[["x_coords", "y_coords"]].mean()
+    cluster_centers = cluster_df.groupby("cluster")[["x_coords", "y_coords"]].mean()
     cluster_centers[["longitude", "latitude"]] = cluster_centers.apply(
         lambda row: transform_coordinates(
             row["x_coords"], row["y_coords"], transformer
