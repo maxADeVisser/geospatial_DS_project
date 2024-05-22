@@ -6,6 +6,7 @@ import geopandas as gpd
 import movingpandas as mpd
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
@@ -131,17 +132,34 @@ def grid_search_DBSCAN(
                 eval_score = (-1, None)
 
             n_outliers = np.sum(cluster_labels == -1)  # n elements in noise cluster
-            # eval_score = eval_func(
-            #     _temp_array[:, :-1], _temp_array[:, -1], **eval_func_kwargs
-            # ) - ((n_outliers / len(cluster_labels)) ** 2)
             eval_score = eval_func(_temp_array[:, :-1], _temp_array[:, -1], n_outliers)
 
             print(
                 f"Eps: {eps}, Min sample: {min}, score: {eval_score}, outliers fraction: {n_outliers / len(cluster_labels)}, n clusters: {len(set(cluster_labels))}"
             )
             all_scores.append((eps, min, eval_score))
+    return all_scores
 
-    # Get best parameters:
+
+def plot_grid_search_results(grid_search_results: list[tuple[int, int, float]]) -> None:
+    unzipped_lists = list(zip(*grid_search_results))
+
+    # Convert the list of tuples into a DataFrame
+    df = pd.DataFrame(unzipped_lists).transpose()
+    df.columns = ["Epsilon", "Min_sample", "Evaluation Score"]
+    heatmap_data = df.pivot(
+        index="Epsilon", columns="Min_sample", values="Evaluation Score"
+    )
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(heatmap_data, annot=True, cmap="coolwarm")
+    plt.title("Heatmap of DBSCAN grid search results")
+    plt.show()
+
+
+def _get_best_params(
+    all_scores: list[tuple[int, int, float]]
+) -> tuple[int, int, float]:
+    """Util function for grid_search_DBSCAN(). Returns the best parameters based on the evaluation score."""
     unzipped_lists = list(zip(*all_scores))
     best_score = 0.0
     best_score_idx = 0
@@ -149,8 +167,11 @@ def grid_search_DBSCAN(
         if eval_score > best_score:
             best_score = eval_score
             best_score_idx = idx
-
-    return all_scores[best_score_idx]
+    best_results = all_scores[best_score_idx]
+    print(
+        f"Best is eps {best_results[0]}, min_samples {best_results[1]} with score {best_results[2]}"
+    )
+    return best_results
 
 
 def inspect_cluster(trajs_gdf: pd.DataFrame, cluster_id: int, a=0.5) -> None:
@@ -180,6 +201,7 @@ def inspect_cluster(trajs_gdf: pd.DataFrame, cluster_id: int, a=0.5) -> None:
 
 if __name__ == "__main__":
     # Load speed-filtered trajectories:
+    # ! THIS IS ONLY FOR THE FIRST 10 DAYS OF AUGUST!!
     trajs_gdf = load_and_parse_gdf_from_file(
         "out/post_processed_ais_data/speed_filtered_trajectories.shp"
     )
@@ -207,11 +229,16 @@ if __name__ == "__main__":
     plt.show()
 
     # Grid search
-    best_eps, best_min_samples, best_eval_score = grid_search_DBSCAN(
+    grid_search_scores = grid_search_DBSCAN(
         cluster_matrix,
         eps_values=eps_values,
         min_sample_values=min_sample_values,
     )
+
+    # plotting the grid search results:
+    plot_grid_search_results(grid_search_scores)
+
+    best_eps, best_min_samples, best_eval_score = _get_best_params(grid_search_scores)
     # RES: got eps=2000, min_samples=5, outlier fraction=0.11
 
     cluster_labels = run_DBSCAN(
