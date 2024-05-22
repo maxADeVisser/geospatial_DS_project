@@ -1,3 +1,5 @@
+"""This module contains functions for spatial trajectory analysis"""
+
 # %%
 from typing import Callable, Literal
 
@@ -11,8 +13,6 @@ from matplotlib import pyplot as plt
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
 from tqdm import tqdm
-
-from utils.postprocessing import load_and_parse_gdf_from_file
 
 
 def get_cluster_df_and_matrix(trajs_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
@@ -141,10 +141,10 @@ def grid_search_DBSCAN(
     return all_scores
 
 
-def plot_grid_search_results(grid_search_results: list[tuple[int, int, float]]) -> None:
+def plot_grid_search_results(
+    grid_search_results: list[tuple[int, int, float]], save_path: str
+) -> None:
     unzipped_lists = list(zip(*grid_search_results))
-
-    # Convert the list of tuples into a DataFrame
     df = pd.DataFrame(unzipped_lists).transpose()
     df.columns = ["Epsilon", "Min_sample", "Evaluation Score"]
     heatmap_data = df.pivot(
@@ -153,6 +153,8 @@ def plot_grid_search_results(grid_search_results: list[tuple[int, int, float]]) 
     plt.figure(figsize=(10, 8))
     sns.heatmap(heatmap_data, annot=True, cmap="coolwarm")
     plt.title("Heatmap of DBSCAN grid search results")
+    if save_path:
+        plt.savefig(save_path, dpi=300)
     plt.show()
 
 
@@ -174,7 +176,7 @@ def _get_best_params(
     return best_results
 
 
-def inspect_cluster(trajs_gdf: pd.DataFrame, cluster_id: int, a=0.5) -> None:
+def inspect_start_cluster(trajs_gdf: pd.DataFrame, cluster_id: int, a=0.5) -> None:
     plot_df = trajs_gdf.query(f"cluster_start == {cluster_id}")
     unique_end_clusters = plot_df["cluster_end"].unique()
     print(f"n end clusters: {unique_end_clusters.size}")

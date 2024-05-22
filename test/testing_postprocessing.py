@@ -6,7 +6,6 @@ import pandas as pd
 
 from utils.plotting import plot_traj_length_distribution, plot_trajs
 from utils.postprocessing import (
-    create_traj_collection,
     export_trajs_as_gdf,
     filter_min_readings,
     load_and_parse_gdf_from_file,
@@ -15,6 +14,7 @@ from utils.postprocessing import (
     split_ids,
     stop_detection,
 )
+from utils.preprocessing import to_geodf
 
 # %% 1.
 # filter out trajectories with less than 50 readings (12,5 hours of sailing time when 1 reading per 15 minutes):
@@ -22,7 +22,13 @@ df = pd.read_parquet("out/ais_data/traj_first_10_days.parquet")
 df = filter_min_readings(df, min_readings=50)
 
 # create a TrajectoryCollection:
-trajs = create_traj_collection(df, min_length=10_000)
+gdf = to_geodf(df)
+trajs = mpd.TrajectoryCollection(
+    gdf.set_index("timestamp"),
+    traj_id_col="MMSI",
+    t="timestamp",
+    min_length=10_000,  # min_length is in meters
+)
 # plot_traj_length_distribution(trajs)
 
 # %% 2. Split trajectories by time gaps

@@ -11,13 +11,9 @@ from dask.dataframe.utils import make_meta
 from tqdm import tqdm
 
 from utils.postprocessing import (
-    create_traj_collection,
     export_trajs_as_gdf,
     filter_min_readings,
-    load_and_parse_gdf_from_file,
-    plot_time_gap_elbow,
     split_by_time_gaps,
-    split_ids,
     stop_detection,
 )
 from utils.preprocessing import (
@@ -28,7 +24,13 @@ from utils.preprocessing import (
     to_geodf,
     unzip_ais_data,
 )
-from utils.project_types import AIS_MAX_LAT, AIS_MAX_LON, AIS_MIN_LAT, AIS_MIN_LON
+from utils.project_types import (
+    AIS_MAX_LAT,
+    AIS_MAX_LON,
+    AIS_MIN_LAT,
+    AIS_MIN_LON,
+    ShipType,
+)
 
 # %%
 
@@ -89,7 +91,7 @@ if __name__ == "__main__":
         "out/ais_data/traj_all.parquet"  # main file with all trajectories
     )
     TEMP_DATA_DIR = "out/temp_data"  # temp dir to store downloaded data
-    SHIP_TYPE = "Sailing"  # Ship type to filter for
+    SHIP_TYPE = ShipType.sailboat.value  # Ship type to analyse
     RESET_MAIN_FILE = True  # Set to True to reset the main file if it exists
     PROCESS_DATES = [dt.datetime(2023, 8, day) for day in range(1, 32)]
 
@@ -107,38 +109,46 @@ if __name__ == "__main__":
     # Post processing of the downloaded data:
     df = pd.read_parquet(OUTPUT_FILE_PATH)
 
-    # ! FOR TESTING:
-    df = pd.read_parquet("out/ais_data/traj_first_10_days.parquet")
+    # filter out MMSI with less than 50 readings (12,5 hours of sailing time when 1 reading per 15 minutes):
+    df = filter_min_readings(
+        df, min_readings=50
+    )  # NOTE: only a small handful of MMSIs have less than 50 readings
 
-    # filter out trajectories with less than 16 readings
-    df = filter_min_readings(df, min_readings=16)
-
-    trajs = create_traj_collection(df, min_length=10_000)  # min_length is in meters
+    # Create trajectory collection
+    gdf = to_geodf(df)  # convert to geodataframe and add CRS
+    trajs = mpd.TrajectoryCollection(
+        gdf.set_index("timestamp"),
+        traj_id_col="MMSI",
+        t="timestamp",
+        min_length=10_000,  # min_length is in meters
+    )
 
     # split trajectories if there are more than 10 hours time gaps:
     obs_splitted_trajs = split_by_time_gaps(trajs, time_gap_threshold=10)
 
-    # Apply stop detection:
+    # Apply stop detection (takes time - 29 minutes for all of august):
     stop_splitted_trajs = stop_detection(
         obs_splitted_trajs, max_diameter=1_000, min_duration=dt.timedelta(hours=3)
     )
 
-    # add speed
+    # add speeds
     stop_splitted_trajs.add_speed(
         overwrite=True, units=("km", "h"), name="speed (km/h)"
     )
 
-    gdf = stop_splitted_trajs.to_point_gdf()  # convert to geodataframe
-    # Remove speed outliers:
+    # convert to geodataframe
+    gdf = stop_splitted_trajs.to_point_gdf()
+
+    # Remove speed outliers (there was some crazy high speeds in the data due to faulty readings probably):
     max_speed_threshold = 100
     gdf_speed_filtered = gdf[gdf["speed (km/h)"] < max_speed_threshold]
-    # print(f"{gdf.shape[0] - gdf_speed_filtered.shape[0]} AIS readings removed")
 
     final_trajs = mpd.TrajectoryCollection(
         gdf_speed_filtered, traj_id_col="MMSI", t="timestamp"
     )
 
-    # exports the individual points (with splitting ids/prefixes though):
+    # Write out file
     export_trajs_as_gdf(
-        final_trajs, "out/post_processed_ais_data/all_speed_filtered_trajectories.shp"
+        gdf_speed_filtered,
+        "out/post_processed_ais_data/august_speed_filtered_trajectories.shp",
     )

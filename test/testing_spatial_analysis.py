@@ -9,8 +9,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
 from tqdm import tqdm
 
-from utils.plotting import plot_static, plot_traj_length_distribution, plot_trajs
-from utils.postprocessing import create_traj_collection, load_and_parse_gdf_from_file
+from utils.postprocessing import load_and_parse_gdf_from_file
 
 trajs_gdf = load_and_parse_gdf_from_file(
     "out/post_processed_ais_data/speed_filtered_trajectories.shp"

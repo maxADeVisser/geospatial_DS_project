@@ -1,12 +1,15 @@
+"""This module is for adding location names to the cluster centers"""
+
 # %%
 import pandas as pd
 from geopy.geocoders import Nominatim
 from pyproj import Transformer
 
+from utils.project_types import MapProjection
+
 
 def transform_coordinates(x: float, y: float, transformer: Transformer):
     """Transforms coordinates from one coordinate system to another"""
-
     longitude, latitude = transformer.transform(x, y)
     return longitude, latitude
 
@@ -44,8 +47,8 @@ def reverse_geocode(row: pd.Series, geolocator: Nominatim, loc_dict: dict):
 
 def get_cluster_names(
     cluster_df: pd.DataFrame,
+    transformer: Transformer,
     geolocator=Nominatim(user_agent="map_clusters"),
-    transformer=Transformer.from_crs("epsg:25832", "epsg:4326", always_xy=True),
 ) -> pd.DataFrame:
     """Returns the location names of the cluster centers."""
     loc_dict = {}
@@ -68,7 +71,11 @@ def get_cluster_names(
 if __name__ == "__main__":
     clusters_df = pd.read_csv("data_files/cluster_df.csv", index_col=0)
     geolocator = Nominatim(user_agent="map_clusters")
-    transformer = Transformer.from_crs("epsg:25832", "epsg:4326", always_xy=True)
+    transformer = Transformer.from_crs(
+        crs_from=MapProjection.UTMzone32n.value.lower(),
+        crs_to=MapProjection.WGS84.value.lower(),
+        always_xy=True,
+    )
     cluster_centers = get_cluster_names(clusters_df, geolocator, transformer)
 
 # %%

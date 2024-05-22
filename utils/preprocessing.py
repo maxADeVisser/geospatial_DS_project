@@ -1,3 +1,5 @@
+"""This module contains functions for preprocessing AIS data after it has been downloaded from https://web.ais.dk/aisdata/"""
+
 import datetime as dt
 import os
 import subprocess

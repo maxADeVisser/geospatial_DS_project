@@ -1,3 +1,5 @@
+"""This file is the main file for running the spatial clustering analysis"""
+
 # %%
 import numpy as np
 import pandas as pd
@@ -10,6 +12,7 @@ from utils.spatial_trajectory_analysis import (
     elbow_plot_DBSCAN,
     get_cluster_df_and_matrix,
     grid_search_DBSCAN,
+    inspect_start_cluster,
     plot_grid_search_results,
     run_DBSCAN,
 )
@@ -17,10 +20,8 @@ from utils.spatial_trajectory_analysis import (
 # %%
 
 if __name__ == "__main__":
-    # Load speed-filtered trajectories:
-    # ! THIS IS ONLY FOR THE FIRST 10 DAYS OF AUGUST!!
     trajs_gdf = load_and_parse_gdf_from_file(
-        "out/post_processed_ais_data/speed_filtered_trajectories.shp"
+        "out/post_processed_ais_data/all_august/august_speed_filtered_trajectories.shp"
     )
 
     cluster_df, cluster_matrix = get_cluster_df_and_matrix(trajs_gdf)
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    # Grid search
+    # Grid search (takes time when running on all august data - 30 minutes)
     grid_search_scores = grid_search_DBSCAN(
         cluster_matrix,
         eps_values=eps_values,
@@ -53,10 +54,13 @@ if __name__ == "__main__":
     )
 
     # plotting the grid search results:
-    plot_grid_search_results(grid_search_scores)
+    plot_grid_search_results(
+        grid_search_scores,
+        save_path="out/plots/grid_search_results.png",
+    )
 
     best_eps, best_min_samples, best_eval_score = _get_best_params(grid_search_scores)
-    # RES: got eps=2000, min_samples=5, outlier fraction=0.11
+    # RES: got eps=1500, min_samples=14, outlier fraction=0.127
 
     cluster_labels = run_DBSCAN(
         cluster_matrix, eps=best_eps, min_samples=best_min_samples, verbose=True
@@ -71,12 +75,12 @@ if __name__ == "__main__":
         trajs_gdf, cluster_df.query("label == 'end'"), on="traj_id", how="left"
     )["cluster"]
 
-    # get the cluster names:
+    # get the cluster names (also takes some time):
     cluster_names = get_cluster_names(cluster_df).reset_index()[
         ["cluster", "loc_names"]
     ]
 
-    # add the cluster names to the trajs_gdf:
+    # add the cluster names to the trajs_gdf
     # start location names:
     trajs_gdf = (
         pd.merge(
@@ -102,4 +106,14 @@ if __name__ == "__main__":
         .rename(columns={"loc_names": "end_loc"})
     )
 
-    # inspect_cluster(trajs_gdf, 130, a=0.5)
+    # Inspect a cluster:
+    inspect_start_cluster(trajs_gdf, cluster_id=5, a=0.5)
+    # cluster 4 still has outliers??
+
+    # Export the clustered trajectories:
+    export_df = trajs_gdf.copy()
+    export_df["timestamp"] = export_df["timestamp"].astype(str)
+    export_df["stop_split"] = export_df["stop_split"].astype(str)
+
+    export_df.info()
+    export_df.to_file("out/clustered/clustered_trajectories.shp")
