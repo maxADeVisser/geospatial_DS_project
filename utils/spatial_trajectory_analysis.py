@@ -184,7 +184,7 @@ def inspect_start_cluster(trajs_gdf: pd.DataFrame, cluster_id: int, a=0.5) -> No
     colormap = plt.get_cmap("gist_ncar")
     colors = [colormap(i) for i in np.linspace(0, 1, unique_end_clusters.size)]
 
-    _, ax = plt.subplots(1, figsize=(12, 12))
+    fig, ax = plt.subplots(1, figsize=(12, 12))
 
     for i, e in enumerate(unique_end_clusters):
         endpoint_df = plot_df.query(f"cluster_end == {e}")
@@ -196,4 +196,4 @@ def inspect_start_cluster(trajs_gdf: pd.DataFrame, cluster_id: int, a=0.5) -> No
     cx.add_basemap(
         ax, crs=trajs.trajectories[0].crs, source=cx.providers.CartoDB.Positron
     )
-    plt.show()
+    return fig
