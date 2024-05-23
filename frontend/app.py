@@ -8,8 +8,6 @@ import pandas as pd
 import streamlit as st
 from matplotlib import pyplot as plt
 
-from utils.spatial_trajectory_analysis import inspect_start_cluster
-
 st.set_page_config(page_title="Trajectories", initial_sidebar_state="collapsed")
 
 from utils.postprocessing import load_and_parse_gdf_from_file
@@ -37,25 +35,26 @@ def inspect_start_cluster(
     return fig
 
 
-@st.cache_data
-def load_dataframe():
-    return load_and_parse_gdf_from_file("out/clustered/clustered_trajectories.shp")
+@st.cache_data(ttl="30 minutes", show_spinner="Loading data ...")
+def load_dataframe(path: str):
+    return load_and_parse_gdf_from_file(path)
 
 
-gdf = load_dataframe()
+gdf = load_dataframe(path="out/clustered/clustered_trajectories.shp")
 
-st.markdown("# Trajectories")
+st.markdown("# Density Based Clustering of AIS Trajectories")
 st.info(
     "This dashboard allows you to inspect the trajectories of the vehicles. "
     "You can select a start location and optionally an end location to see the trajectories."
 )
 
 st.markdown("## Inputs")
-# select start location
-all_start_locations = sorted(gdf["start_loc"].dropna().unique().tolist())
-_get_number_of_start_locations = lambda x: len(gdf.query(f"start_loc == '{x}'"))
+# select start location:
+start_loc_counts = gdf["start_loc"].value_counts().sort_values(ascending=False)
+_get_number_of_start_locations = lambda x: start_loc_counts[x]
+
 sorted_start_locations = sorted(
-    all_start_locations,
+    start_loc_counts.index.tolist(),
     key=_get_number_of_start_locations,
     reverse=True,
 )
@@ -69,17 +68,14 @@ selected_start_loc = st.selectbox(
 if selected_start_loc:
     start_filtered_gdf = gdf.query(f"start_loc == '{selected_start_loc}'")
 
-# get end locations for the selected start location
-_get_number_of_end_locations = lambda x: len(
-    start_filtered_gdf.query(f"end_loc == '{x}'")
+# get end locations for the selected start location:
+end_loc_counts = (
+    start_filtered_gdf["end_loc"].value_counts().sort_values(ascending=False)
 )
-matching_end_locations = (
-    start_filtered_gdf["end_loc"].dropna().unique().tolist()
-)  # end locations with matching locations for the selected start location
+_get_number_of_end_locations = lambda x: end_loc_counts[x]
 sorted_end_locations = sorted(
-    matching_end_locations, key=_get_number_of_end_locations, reverse=True
+    end_loc_counts.index.tolist(), key=_get_number_of_end_locations, reverse=True
 )
-# TODO check this code again. When showing also the end locations, it does not seems to work
 selected_end_loc = st.selectbox(
     "Select end locations",
     options=sorted_end_locations,
@@ -89,6 +85,7 @@ include_end_loc = st.checkbox("Include end locations")
 submitted = st.button("Cluster Trajectories!", help="Click to cluster trajectories")
 
 
+# When the button is clicked, show the clustered trajectories
 if submitted:
     st.markdown("## Clustered trajectories")
     if not include_end_loc:
