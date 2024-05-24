@@ -9,25 +9,32 @@ import numpy as np
 from utils.project_types import MapProjection
 
 
-def inspect_start_cluster_app(
+def plot_destinations_from_start_location(
     trajs_gdf: gpd.GeoDataFrame,
     title: str,
-    size: int,
     traj_opacity: float = 0.5,
     mark_centroids: bool = False,
-    show_speed: bool = False,
 ) -> plt.Figure:
-    fig, ax = plt.subplots(1, figsize=(size, size))
-    trajs = mpd.TrajectoryCollection(
-        trajs_gdf.set_index("timestamp"), traj_id_col="traj_id", t="timestamp"
-    )
-    trajs.plot(
-        ax=ax,
-        alpha=traj_opacity,
-        linewidth=1,
-        column="speed (km/" if show_speed else None,
-        legend=True,
-    )
+    """Function to plot trajectories starting from a given location and color them based on their end location."""
+    colormap = plt.get_cmap("gist_ncar")
+    # Create a color for each end location:
+    colors = [
+        colormap(i) for i in np.linspace(0, 1, trajs_gdf["end_loc"].unique().size)
+    ]
+
+    fig, ax = plt.subplots(1, figsize=(12, 12))
+
+    for i, (end_location, group) in enumerate(trajs_gdf.groupby("end_loc")):
+        trajs = mpd.TrajectoryCollection(
+            group.set_index("timestamp"), traj_id_col="traj_id", t="timestamp"
+        )
+        trajs.plot(
+            ax=ax,
+            alpha=traj_opacity,
+            linewidth=1,
+            color=colors[i],
+        )
+
     ax.set_title(title)
 
     cx.add_basemap(
@@ -37,6 +44,7 @@ def inspect_start_cluster_app(
     )
     ax.xaxis.set_visible(False)
     ax.yaxis.set_visible(False)
+
     if mark_centroids:
         # only do it for the first point in each trajectory
         start_coords = np.array(
@@ -69,50 +77,59 @@ def inspect_start_cluster_app(
     return fig
 
 
-# import matplotlib.pyplot as plt
-# import numpy as np
-# import pandas as pd
-# from matplotlib.collections import LineCollection
+def plot_trajs_start_to_end(
+    trajs_gdf: gpd.GeoDataFrame,
+    title: str,
+    traj_opacity: float = 0.5,
+    mark_centroids: bool = False,
+) -> plt.Figure:
+    """Function to plot trajectories starting from a given location and ending at another location."""
+    fig, ax = plt.subplots(1, figsize=(12, 12))
 
-# # Example DataFrame
-# data = {
-#     "id": ["A", "A", "A", "B", "B", "C", "C", "C", "C"],
-#     "timestamp": pd.date_range("2021-01-01", periods=9, freq="H"),
-#     "x": np.random.rand(9),
-#     "y": np.random.rand(9),
-# }
+    trajs = mpd.TrajectoryCollection(
+        trajs_gdf.set_index("timestamp"), traj_id_col="traj_id", t="timestamp"
+    )
+    trajs.plot(
+        ax=ax,
+        alpha=traj_opacity,
+        linewidth=1,
+        legend=True,
+        column="speed (km/",
+    )
 
-# df = pd.DataFrame(data)
+    ax.set_title(title)
 
+    cx.add_basemap(
+        ax,
+        crs=MapProjection.UTMzone32n.value,
+        source=cx.providers.CartoDB.Positron,
+    )
+    ax.xaxis.set_visible(False)
+    ax.yaxis.set_visible(False)
 
-# # Function to create LineCollection for each group
-# def create_line_collection(df):
-#     fig, ax = plt.subplots()
+    if mark_centroids:
+        # only do it for the first point in each trajectory
+        start_coords = np.array(
+            [
+                [entry.x, entry.y]
+                for entry in trajs_gdf.groupby("traj_id")["geometry"].first()
+            ]
+        )
+        start_center = np.mean(start_coords, axis=0)
+        ax.scatter(
+            start_center[0], start_center[1], marker="x", color="red", s=100, zorder=10
+        )
 
-#     for name, group in df.groupby("end_loc"):
-#         group = group.sort_values(by="timestamp")
+        # Mark the end point centroid
+        end_coords = np.array(
+            [
+                [entry.x, entry.y]
+                for entry in trajs_gdf.groupby("traj_id")["geometry"].last()
+            ]
+        )
+        end_center = np.mean(end_coords, axis=0)
+        ax.scatter(
+            end_center[0], end_center[1], marker="x", color="green", s=100, zorder=10
+        )
 
-#         # Create segments from the coordinates
-#         points = group[[group["geometry"].x, group["geometry"].y]].values
-#         segments = [list(zip(points[:-1], points[1:]))]
-#         segments = np.concatenate(segments)
-
-#         # Create a LineCollection from the segments
-#         lc = LineCollection(segments, linewidths=2, label=name)
-
-#         # Add the LineCollection to the plot
-#         ax.add_collection(lc)
-
-#     # Set plot limits
-#     ax.set_xlim(df["x"].min() - 0.1, df["x"].max() + 0.1)
-#     ax.set_ylim(df["y"].min() - 0.1, df["y"].max() + 0.1)
-#     ax.set_xlabel("X")
-#     ax.set_ylabel("Y")
-#     ax.legend()
-#     ax.set_title("Line Collection for Each Group of Points")
-
-#     plt.show()
-
-
-# # Call the function
-# create_line_collection(df)
+    return fig

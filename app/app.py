@@ -4,7 +4,7 @@ import streamlit as st
 
 # dont move!:
 st.set_page_config(page_title="AIS Trajectories", initial_sidebar_state="collapsed")
-from app_utils import inspect_start_cluster_app
+from app_utils import plot_destinations_from_start_location, plot_trajs_start_to_end
 
 # from app.app_utils import inspect_start_cluster_app
 from utils.postprocessing import load_and_parse_gdf_from_file
@@ -132,22 +132,17 @@ st.slider(
     key=traj_opacity_var,
 )
 
-figure_size = st.slider("Figure Size", min_value=5, max_value=20, value=12)
-
 mark_start = st.checkbox("Mark Start Location", value=True)
-show_speed = st.checkbox("Show speed", value=True)
 
 # ------ DISPLAY CLUSTERED TRAJECTORIES ------
 if st.session_state[submitted_var]:
     st.markdown("# Clustered Trajectories")
     if not include_end_loc:
-        fig = inspect_start_cluster_app(
+        fig = plot_destinations_from_start_location(
             filtered_gdf,
             traj_opacity=st.session_state[traj_opacity_var],
             mark_centroids=mark_start,
             title=f"Trajectories starting from {selected_start_loc}",
-            show_speed=show_speed,
-            size=figure_size,
         )
         st.pyplot(fig)
 
@@ -158,15 +153,11 @@ if st.session_state[submitted_var]:
             st.markdown("No trajectories found between the given locations")
             st.stop()
 
-        # TODO color by end locations
-        # filtered_gdf.groupby("end_loc").size()
-
-        fig = inspect_start_cluster_app(
+        fig = plot_trajs_start_to_end(
             filtered_gdf,
             traj_opacity=st.session_state[traj_opacity_var],
             title=f"Trajectories starting from {selected_start_loc} and ending at {selected_end_loc}",
-            show_speed=show_speed,
-            size=figure_size,
+            mark_centroids=mark_start,
         )
         st.pyplot(fig)
 
