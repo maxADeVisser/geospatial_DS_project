@@ -128,14 +128,13 @@ st.slider(
     "Trajectory Opacity",
     min_value=0.0,
     max_value=1.0,
-    # value=st.session_state[traj_opacity_var],
     value=0.5,
     key=traj_opacity_var,
 )
 
 figure_size = st.slider("Figure Size", min_value=5, max_value=20, value=12)
 
-mark_start = st.checkbox("Mark Start Location", value=True)  # , key=mark_start_var)
+mark_start = st.checkbox("Mark Start Location", value=True)
 show_speed = st.checkbox("Show speed", value=True)
 
 # ------ DISPLAY CLUSTERED TRAJECTORIES ------
@@ -145,7 +144,7 @@ if st.session_state[submitted_var]:
         fig = inspect_start_cluster_app(
             filtered_gdf,
             traj_opacity=st.session_state[traj_opacity_var],
-            mark_centroid=mark_start,
+            mark_centroids=mark_start,
             title=f"Trajectories starting from {selected_start_loc}",
             show_speed=show_speed,
             size=figure_size,
@@ -158,6 +157,9 @@ if st.session_state[submitted_var]:
         if len(filtered_gdf) == 0:
             st.markdown("No trajectories found between the given locations")
             st.stop()
+
+        # TODO color by end locations
+        # filtered_gdf.groupby("end_loc").size()
 
         fig = inspect_start_cluster_app(
             filtered_gdf,
