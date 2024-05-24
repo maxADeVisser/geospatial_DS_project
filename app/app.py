@@ -6,6 +6,7 @@ import streamlit as st
 st.set_page_config(page_title="AIS Trajectories", initial_sidebar_state="collapsed")
 from app_utils import inspect_start_cluster_app
 
+# from app.app_utils import inspect_start_cluster_app
 from utils.postprocessing import load_and_parse_gdf_from_file
 
 
@@ -14,7 +15,10 @@ def load_dataframe(path: str):
     return load_and_parse_gdf_from_file(path)
 
 
-gdf = load_dataframe(path="out/clustered/clustered_trajectories.shp")
+gdf = load_dataframe(path="out/clustered/clustered_trajectories.shp").query(
+    "cluster_st != -1.0 and cluster_en != -1.0"
+)
+# We are removing non-clustered points
 
 st.markdown("# Density Based Clustering of AIS Trajectories")
 st.info(
@@ -61,14 +65,17 @@ if mark_start_var not in st.session_state:
     st.session_state[mark_start_var] = False
 
 # ------ SELECT START LOCATION ------
-start_loc_counts = gdf["start_loc"].value_counts().sort_values(ascending=False)
+start_trajectory_counts = (
+    gdf.groupby("start_loc")["traj_id"].nunique().sort_values(ascending=False)
+)
+
 
 if st.session_state[selected_start_loc_var] is None:
-    st.session_state[selected_start_loc_var] = start_loc_counts.index[0]
+    st.session_state[selected_start_loc_var] = start_trajectory_counts.index[0]
 
-_get_number_of_start_locations = lambda x: start_loc_counts[x]
+_get_number_of_start_locations = lambda x: start_trajectory_counts[x]
 sorted_start_locations = sorted(
-    start_loc_counts.index.tolist(),
+    start_trajectory_counts.index.tolist(),
     key=_get_number_of_start_locations,
     reverse=True,
 )
@@ -84,13 +91,19 @@ if selected_start_loc:
     filtered_gdf = gdf.query(f"start_loc == '{selected_start_loc}'")
 
     # ------ SELECT END LOCATION ------
-    end_loc_counts = filtered_gdf["end_loc"].value_counts().sort_values(ascending=False)
+    end_trajectory_counts = (
+        filtered_gdf.groupby("end_loc")["traj_id"]
+        .nunique()
+        .sort_values(ascending=False)
+    )
     if st.session_state[selected_end_loc_var] is None:
-        st.session_state[selected_end_loc_var] = end_loc_counts.index[1]
+        st.session_state[selected_end_loc_var] = end_trajectory_counts.index[1]
 
-    _get_number_of_end_locations = lambda x: end_loc_counts[x]
+    _get_number_of_end_locations = lambda x: end_trajectory_counts[x]
     sorted_end_locations = sorted(
-        end_loc_counts.index.tolist(), key=_get_number_of_end_locations, reverse=True
+        end_trajectory_counts.index.tolist(),
+        key=_get_number_of_end_locations,
+        reverse=True,
     )
     selected_end_loc = st.selectbox(
         "Select end locations (given start location)",
