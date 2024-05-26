@@ -1,6 +1,5 @@
 """This file is the main file for running the spatial clustering analysis"""
 
-# %%
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -17,12 +16,12 @@ from utils.spatial_trajectory_analysis import (
     run_DBSCAN,
 )
 
-# %%
+INPUT_FILE_PATH = (
+    "out/post_processed_ais_data/all_august/august_speed_filtered_trajectories.shp"
+)
 
 if __name__ == "__main__":
-    trajs_gdf = load_and_parse_gdf_from_file(
-        "out/post_processed_ais_data/all_august/august_speed_filtered_trajectories.shp"
-    )
+    trajs_gdf = load_and_parse_gdf_from_file(INPUT_FILE_PATH)
 
     cluster_df, cluster_matrix = get_cluster_df_and_matrix(trajs_gdf)
 
@@ -30,21 +29,21 @@ if __name__ == "__main__":
     eps_values = np.concatenate([np.arange(200, 901, 100), np.arange(1000, 5001, 500)])
     min_sample_values = np.arange(5, 21, 3)
 
-    # elbow plots
-    _, axs = plt.subplots(1, 2, figsize=(12, 8))
-    elbow_plot_DBSCAN(
-        cluster_matrix, "eps", varying_param=eps_values, constant_param=10, ax=axs[0]
-    )
-    elbow_plot_DBSCAN(
-        cluster_matrix,
-        "min_samples",
-        varying_param=min_sample_values,
-        constant_param=1000,
-        ax=axs[1],
-    )
-    plt.suptitle("Elbow plots for DBSCAN hyperparameters")
-    plt.tight_layout()
-    plt.show()
+    # elbow plots (uncomment these if you want to see the elbow plots)
+    # _, axs = plt.subplots(1, 2, figsize=(12, 8))
+    # elbow_plot_DBSCAN(
+    #     cluster_matrix, "eps", varying_param=eps_values, constant_param=10, ax=axs[0]
+    # )
+    # elbow_plot_DBSCAN(
+    #     cluster_matrix,
+    #     "min_samples",
+    #     varying_param=min_sample_values,
+    #     constant_param=1000,
+    #     ax=axs[1],
+    # )
+    # plt.suptitle("Elbow plots for DBSCAN hyperparameters")
+    # plt.tight_layout()
+    # plt.show()
 
     # Grid search (takes time when running on all august data - 30 minutes)
     grid_search_scores = grid_search_DBSCAN(
@@ -53,7 +52,7 @@ if __name__ == "__main__":
         min_sample_values=min_sample_values,
     )
 
-    # plotting the grid search results:
+    # plotting the grid search results)
     plot_grid_search_results(
         grid_search_scores,
         save_path="out/plots/grid_search_results.png",

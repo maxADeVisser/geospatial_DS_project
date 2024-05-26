@@ -106,7 +106,7 @@ if __name__ == "__main__":
     ):
         fetch_AIS_for_day(PROCESS_DATES[i])
 
-    # Post processing of the downloaded data:
+    # ------------ Post processing of the downloaded data ---------------
     df = pd.read_parquet(OUTPUT_FILE_PATH)
 
     # filter out MMSI with less than 50 readings (12,5 hours of sailing time when 1 reading per 15 minutes):

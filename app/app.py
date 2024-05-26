@@ -4,7 +4,8 @@ import streamlit as st
 
 # dont move!:
 st.set_page_config(page_title="AIS Trajectories", initial_sidebar_state="collapsed")
-from app_utils import plot_destinations_from_start_location, plot_trajs_start_to_end
+from app_utils import (plot_destinations_from_start_location,
+                       plot_trajs_start_to_end)
 
 # from app.app_utils import inspect_start_cluster_app
 from utils.postprocessing import load_and_parse_gdf_from_file
@@ -112,6 +113,7 @@ if selected_start_loc:
         key=selected_end_loc_var,
     )
     include_end_loc = st.checkbox("Include end locations")
+    mark_start = st.checkbox("Mark Start Location", value=True)
 
 # ----- SUBMIT BUTTON -----
 go_button = st.button("Cluster Trajectories!", help="Click to cluster trajectories")
@@ -132,7 +134,6 @@ st.slider(
     key=traj_opacity_var,
 )
 
-mark_start = st.checkbox("Mark Start Location", value=True)
 
 # ------ DISPLAY CLUSTERED TRAJECTORIES ------
 if st.session_state[submitted_var]:

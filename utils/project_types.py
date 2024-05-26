@@ -29,6 +29,7 @@ class ShipType(Enum):
     """A enum class to represent the different ship types in the AIS dataset"""
 
     sailboat = "Sailing"
+    # These are the other ship types in the dataset:
     # 'Undefined'
     # 'Cargo'
     # 'Pleasure'

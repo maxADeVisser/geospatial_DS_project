@@ -21,12 +21,11 @@ def download_ais_data(date: dt.date, out_folder: str, verbose: bool = False) -> 
     print(f"Downloading {url} to path: {out_folder}")
     file_name = f"aisdk-{date_string}.zip"
     download_command = f"wget {url} -O {os.path.join(out_folder, file_name)}"
+
     # Use subprocess.run to execute the command and suppress output
     if verbose:
         print(f"File name: {file_name}\nDownload command: {download_command}")
-    subprocess.run(
-        download_command, shell=True
-    )  # , stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    subprocess.run(download_command, shell=True)
 
     return os.path.join(out_folder, file_name)
 
@@ -81,7 +80,6 @@ def load_csv_file(filepath: str) -> pd.DataFrame:
     return df
 
 
-# NOT USED I THINK
 def remove_faulty_ais_readings(ais_df: pd.DataFrame) -> pd.DataFrame:
     return ais_df.loc[(ais_df["lon"] != 0.0)]
 
@@ -95,7 +93,7 @@ def change_data_frequency(
     resampled_df = ais_df.resample(
         rule=data_freq.value
     ).first()  # resample based on first index (timestamp)
-    return resampled_df.reset_index()  # add incrementing index
+    return resampled_df.reset_index()
 
 
 def to_geodf(
@@ -127,44 +125,3 @@ def extend_main_trajectory_file(df: pd.DataFrame, main_file_path: str) -> None:
         df.to_parquet(main_file_path, engine="fastparquet", append=True)
     else:
         df.to_parquet(main_file_path, engine="fastparquet")
-
-
-# if __name__ == "__main__":
-# today = load_csv_file("data_files/aisdk-2023-08-01.csv")
-# today.memory_usage()  # memory usage of the dataframe in bytes
-# print(f"df uses {aug1.memory_usage().sum() / 1_000_000} Mb")
-# yesterday = load_csv_file("data_files/aisdk-2024-02-17.csv")
-# grouped = today.groupby("MMSI")
-# # groups = list(grouped.groups.keys())
-
-# ### Stiching together data from multiple days
-# MMSI = 538005405  # MMSI that has a ongoing trajectory
-# today_vessel1 = grouped.get_group(MMSI)[1:]  # remove the first row (outlier)
-# yesterday_group = yesterday.groupby("MMSI")
-# yesterday_vessel1 = yesterday_group.get_group(MMSI)
-
-# # Concatenate the two dataframes
-# concatenated = pd.concat([yesterday_vessel1, today_vessel1])
-# changed_freq = change_data_frequency(concatenated, TimeFrequency.min_10)
-# geo = to_geodf(changed_freq)
-# geo.plot()
-
-# # Creating a moving pandas trajectory and plotting it
-# # to install do:
-# # conda install hvplot
-# # conda install -c pyviz geoviews-core
-# traj = mpd.Trajectory(
-#     df=changed_freq, traj_id=str(MMSI), t=changed_freq.index, x="lon", y="lat"
-# )
-# traj.df  # the dataframe
-
-# # Detect stops in the trajectory
-# detector = mpd.TrajectoryStopDetector(traj)
-# stops = detector.get_stop_points(
-#     min_duration=dt.timedelta(seconds=600), max_diameter=50
-# )
-
-# import hvplot.pandas
-
-# # plot stops
-# stops.hvplot(geo=True, tiles=True, hover_cols="all")
