@@ -20,3 +20,5 @@ The data can be found [here](https://web.ais.dk/aisdata/)
 Here are to examples of the types of plots that the application generates:
 ![Svendborg-Nyborg](https://github.com/maxADeVisser/geospatial_DS_project/assets/1355181/b67b8d77-01b2-4544-9e6e-38a6195e13fb)
 ![Svendborg](https://github.com/maxADeVisser/geospatial_DS_project/assets/1355181/71a9121e-36d1-449b-a61f-c8f0a9b058e0)
+![Svendborg-Marstal](https://github.com/maxADeVisser/geospatial_DS_project/assets/1355181/b9efd06e-ad01-4a15-93f7-88e04c6d7eb2)
+![Vordingborg Kommune](https://github.com/maxADeVisser/geospatial_DS_project/assets/1355181/a9f10278-2fbe-4a4c-a76c-62b0225f0ef7)
